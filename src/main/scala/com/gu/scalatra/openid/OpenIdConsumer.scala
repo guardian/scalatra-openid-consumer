@@ -1,12 +1,12 @@
 package com.gu.scalatra.openid
 
-import org.scalatra.ScalatraFilter
 import org.openid4java.consumer.ConsumerManager
 import org.openid4java.discovery.DiscoveryInformation
 import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
+import org.scalatra.ScalatraKernel
 
-trait OpenIdConsumer extends ScalatraFilter with SessionStore with UserAuthorisation {
+trait OpenIdConsumer extends ScalatraKernel with SessionStore with UserAuthorisation {
 
   val authenticationReturnUri: String
   val authenticationReturnPath: String
