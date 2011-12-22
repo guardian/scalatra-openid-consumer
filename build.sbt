@@ -8,6 +8,10 @@ libraryDependencies ++= Seq(
   "org.openid4java" % "openid4java-consumer" % "0.9.6"
 )
 
+scalaVersion := "2.9.1"
+
+crossScalaVersions ++= Seq("2.9.0-1", "2.8.1")
+
 publishArtifact := true
 
 organization := "com.gu"
