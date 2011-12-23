@@ -4,7 +4,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "javax.servlet" % "servlet-api" % "2.5" % "provided",
-  "org.scalatra" %% "scalatra" % "2.0.1",
+  "org.scalatra" %% "scalatra" % "2.0.2",
   "org.openid4java" % "openid4java-consumer" % "0.9.6"
 )
 
@@ -18,7 +18,7 @@ organization := "com.gu"
 
 name := "scalatra-openid-consumer"
 
-version in ThisBuild := "0.1.2-SNAPSHOT"
+version in ThisBuild := "0.1.3-SNAPSHOT"
 
 publishTo <<= (version) { version: String =>
     val publishType = if (version.endsWith("SNAPSHOT")) "snapshots" else "releases"

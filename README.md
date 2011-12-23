@@ -14,7 +14,7 @@ Add the following resolver in sbt
 
     "Guardian GitHub Release" at "http://guardian.github.com/maven/repo-releases"
 
-The current version is 0.1.0 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.1
+The current version is 0.1.2 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
 
 In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* and *SessionStore* traits.  This project provides default in-memory implementations for user authorisation and session store.  For example:
 
