@@ -6,7 +6,7 @@ import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
 import org.scalatra.ScalatraKernel
 
-trait OpenIdConsumer extends ScalatraKernel with SessionStore with UserAuthorisation {
+trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
 
   val authenticationReturnUri: String
   val authenticationReturnPath: String
@@ -41,7 +41,7 @@ trait OpenIdConsumer extends ScalatraKernel with SessionStore with UserAuthorisa
 
   protectedPaths map { path =>
     before(path) {
-      if (!isSessionAuthenticated(session.getId))
+      if(!session.contains(User.key))
         redirect(authenticationProviderRedirectEndpoint)
     }
   }
@@ -61,11 +61,10 @@ trait OpenIdConsumer extends ScalatraKernel with SessionStore with UserAuthorisa
         val userLastName = fetchResp.getAttributeValue(lastName)
         val user = User(userEmail, userFirstName, userLastName)
         if (!isUserAuthorised(user)){
-          invalidate(session.getId)
           session.invalidate()
           halt(status = 403, reason = "Sorry, you are not authorised")
         }
-        saveUser(session.getId, user)
+        session(User.key) = user
         val redirectToUri = session.getAttribute(redirectTo).asInstanceOf[String]
         redirect(redirectToUri)
       }
@@ -74,7 +73,6 @@ trait OpenIdConsumer extends ScalatraKernel with SessionStore with UserAuthorisa
   }
 
   get(logoutPath) {
-    invalidate(session.getId)
     session.invalidate()
     redirect(logoutRedirect)
   }

@@ -10,7 +10,7 @@ libraryDependencies ++= Seq(
 
 scalaVersion := "2.9.1"
 
-crossScalaVersions ++= Seq("2.9.0-1", "2.8.1")
+crossScalaVersions ++= Seq("2.9.0-1", "2.9.0", "2.8.1")
 
 publishArtifact := true
 
@@ -18,7 +18,7 @@ organization := "com.gu"
 
 name := "scalatra-openid-consumer"
 
-version in ThisBuild := "0.1.1-SNAPSHOT"
+version in ThisBuild := "0.1.2-SNAPSHOT"
 
 publishTo <<= (version) { version: String =>
     val publishType = if (version.endsWith("SNAPSHOT")) "snapshots" else "releases"
