@@ -18,17 +18,13 @@ The current version is 0.1.2 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1
 
 In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* and *SessionStore* traits.  This project provides default in-memory implementations for user authorisation and session store.  For example:
 
-    class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with InMemorySessionStore with AlwaysAllowUserAuthorisation
+    class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with AlwaysAllowUserAuthorisation
 
 ## Contributing
 
 If you wish to contribute, please fork the project. Then create a new remote branch with your changes and send a pull request and we will try and add your changes in.
 
 ## Code overview
-
-### SessionStore
-
-This trait is for storing the mapping between the session id and the user.  A default implementation is provided which stores this map in memory. You may wish to override and store this in a database for example.
 
 ### User authorisation
 
