@@ -28,7 +28,7 @@ If you wish to contribute, please fork the project. Then create a new remote bra
 
 ### User authorisation
 
-This trait is for informing the application that an authentication has been successful and gives the application a change to reject that user based on some critera which this extension would not know about, a banned user for example.
+This trait is for informing the application that an authentication has been successful and gives the application a chance to reject that user based on some criteria which this extension would not know about, a banned user for example.
 
 Again, there is a default implementation which allows all users in.
 
