@@ -4,9 +4,9 @@ import org.openid4java.consumer.ConsumerManager
 import org.openid4java.discovery.DiscoveryInformation
 import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
-import org.scalatra.ScalatraKernel
+import org.scalatra.{CookieSupport, ScalatraKernel, CookieOptions, Cookie}
 
-trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
+trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSupport {
 
   val authenticationReturnUri: String
   val authenticationReturnPath: String
@@ -27,10 +27,8 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
 
   def authenticationProviderRedirectEndpoint() = {
     val discoveries = manager.discover(discoveryEndpoint)
-    val discoveryInformation = manager.associate(discoveries)
-    session.setAttribute(discovered, discoveryInformation)
-    session.setAttribute(redirectTo, request.getRequestURI)
-    val authReq = manager.authenticate(discoveryInformation, authenticationReturnUri)
+    cookies.set(redirectTo, request.getRequestURI)
+    val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
     fetch.addAttribute(firstName, firstNameSchema, true)
@@ -41,15 +39,15 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
 
   protectedPaths map { path =>
     before(path) {
-      if(!session.contains(User.key))
+      if(cookies.get(User.key) == None)
         redirect(authenticationProviderRedirectEndpoint)
     }
   }
 
   get(authenticationReturnPath) {
     val openidResp = new ParameterList(request.getParameterMap())
-    val discoveryInformation = session.getAttribute(discovered).asInstanceOf[DiscoveryInformation]
-    val verification = manager.verify(authenticationReturnUri, openidResp, discoveryInformation)
+    val discoveries = manager.discover(discoveryEndpoint)
+    val verification = manager.verify(authenticationReturnUri, openidResp, manager.associate(discoveries))
     val verified = verification.getVerifiedId()
     if (verified != null) {
       val authSuccess = verification.getAuthResponse().asInstanceOf[AuthSuccess]
@@ -61,19 +59,30 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
         val userLastName = fetchResp.getAttributeValue(lastName)
         val user = User(userEmail, userFirstName, userLastName)
         if (!isUserAuthorised(user)){
-          session.invalidate()
+          clearCookie(User.key)
           halt(status = 403, reason = "Sorry, you are not authorised")
         }
-        session(User.key) = user
-        val redirectToUri = session.getAttribute(redirectTo).asInstanceOf[String]
+        cookies.set(User.key, "%s|%s|%s".format(userEmail, userFirstName, userLastName))
+        val redirectToUri = getAndClearCookie(redirectTo)
         redirect(redirectToUri)
       }
     } else
       halt(status = 403, reason = "Could not verify authentication with provider")
   }
 
+  def getAndClearCookie(cookieName: String): String = {
+    val cookie = cookies(cookieName)
+    clearCookie(cookieName)
+    cookie
+  }
+  
+  def clearCookie(cookieName: String) {
+    cookies.get(cookieName) foreach { _ => cookies.update(cookieName, null) }
+  }
+  
   get(logoutPath) {
     session.invalidate()
+    getAndClearCookie(User.key)
     redirect(logoutRedirect)
   }
 
