@@ -1,10 +1,10 @@
 package com.gu.scalatra.openid
 
 import org.openid4java.consumer.ConsumerManager
-import org.openid4java.discovery.DiscoveryInformation
 import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
-import org.scalatra.{CookieSupport, ScalatraKernel, CookieOptions, Cookie}
+import org.scalatra.{CookieSupport, ScalatraKernel}
+import com.gu.security.{MacService, KeyService}
 
 trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSupport {
 
@@ -14,6 +14,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
   val discoveryEndpoint: String
   val logoutPath: String
   val logoutRedirect: String
+  val secretKey: String
 
   lazy val discovered = "discovered"
   lazy val redirectTo = "redirectTo"
@@ -23,7 +24,13 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
   lazy val emailSchema = "http://schema.openid.net/contact/email"
   lazy val firstNameSchema = "http://axschema.org/namePerson/first"
   lazy val lastNameSchema = "http://axschema.org/namePerson/last"
+
   lazy val manager = new ConsumerManager
+  lazy val keyService = new KeyService(secretKey)
+  lazy val macService = new MacService(keyService.getSecretKeySpec)
+  lazy val cookieRegEx = "^^([\\w\\W]*)>>([\\w\\W]*)$".r
+  lazy val hashSeparator = ">>"
+  lazy val userCookiePattern = "%s|%s|%s" + hashSeparator
 
   def authenticationProviderRedirectEndpoint() = {
     val discoveries = manager.discover(discoveryEndpoint)
@@ -39,8 +46,21 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
 
   protectedPaths map { path =>
     before(path) {
-      if(cookies.get(User.key) == None)
-        redirect(authenticationProviderRedirectEndpoint)
+      cookies.get(User.key) match {
+        case Some(cookie) => {
+          cookieRegEx.split(cookie) match {
+            case cookieRegEx(userCookie, hash) => {
+              if (!(macService.getMacForMessageAsHex(userCookie + hashSeparator) == hash)) {
+                clearCookie(User.key)
+                redirect(authenticationProviderRedirectEndpoint)
+              }
+            }
+            case _ => // Do nothing
+          }
+
+        }
+        case _ => redirect(authenticationProviderRedirectEndpoint)
+      }
     }
   }
 
@@ -62,7 +82,9 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
           clearCookie(User.key)
           halt(status = 403, reason = "Sorry, you are not authorised")
         }
-        cookies.set(User.key, "%s|%s|%s".format(userEmail, userFirstName, userLastName))
+        val value = userCookiePattern.format(userEmail, userFirstName, userLastName)
+        val valueHash = macService.getMacForMessageAsHex(value)
+        cookies.set(User.key, value + valueHash)
         val redirectToUri = getAndClearCookie(redirectTo)
         redirect(redirectToUri)
       }
@@ -77,7 +99,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
   }
   
   def clearCookie(cookieName: String) {
-    cookies.get(cookieName) foreach { _ => cookies.update(cookieName, null) }
+    cookies.delete(cookieName)
   }
   
   get(logoutPath) {

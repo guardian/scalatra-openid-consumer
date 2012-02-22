@@ -5,7 +5,8 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "javax.servlet" % "servlet-api" % "2.5" % "provided",
   "org.scalatra" %% "scalatra" % "2.0.2",
-  "org.openid4java" % "openid4java-consumer" % "0.9.6"
+  "org.openid4java" % "openid4java-consumer" % "0.9.6",
+  "com.gu" % "guardian-cookie-library" % "2.18"
 )
 
 scalaVersion := "2.9.1"
