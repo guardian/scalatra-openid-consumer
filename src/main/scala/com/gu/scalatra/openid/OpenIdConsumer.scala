@@ -37,7 +37,6 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
     val discoveries = manager.discover(discoveryEndpoint)
     cookies.set(redirectTo, request.getRequestURI)
     val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
-    authReq.g
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
     fetch.addAttribute(firstName, firstNameSchema, true)
@@ -87,9 +86,8 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
         val value = userCookiePattern.format(userEmail, userFirstName, userLastName)
         macService.getMacForMessageAsHex(value) foreach { hash =>
           cookies.set(User.key, value + hash)
-          //val redirectToUri = getAndClearCookie(redirectTo)
-          println("redirecting to: " + params("redirectTo") + ", returnTo is " + openidResp.getParameter("returnTo"))
-          redirect(params("redirectTo"))
+          val redirectToUri = getAndClearCookie(redirectTo)
+          redirect(redirectToUri)
         }
       }
     } else
