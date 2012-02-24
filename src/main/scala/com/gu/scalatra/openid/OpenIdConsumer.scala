@@ -4,7 +4,8 @@ import org.openid4java.consumer.ConsumerManager
 import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
 import org.scalatra.{CookieSupport, ScalatraKernel}
-import com.gu.security.{MacService, KeyService}
+import com.gu.scalatra.security.{KeyService, MacService, SecretKey}
+import java.net.URLEncoder
 
 trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSupport {
 
@@ -27,7 +28,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
 
   lazy val manager = new ConsumerManager
   lazy val keyService = new KeyService(secretKey)
-  lazy val macService = new MacService(keyService.getSecretKeySpec)
+  lazy val macService = new MacService with SecretKey {def secretKeySpec = keyService.getSecretKeySpec}
   lazy val cookieRegEx = "^^([\\w\\W]*)>>([\\w\\W]*)$".r
   lazy val hashSeparator = ">>"
   lazy val userCookiePattern = "%s|%s|%s" + hashSeparator
@@ -36,6 +37,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
     val discoveries = manager.discover(discoveryEndpoint)
     cookies.set(redirectTo, request.getRequestURI)
     val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
+    authReq.g
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
     fetch.addAttribute(firstName, firstNameSchema, true)
@@ -50,7 +52,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
         case Some(cookie) => {
           cookieRegEx.split(cookie) match {
             case cookieRegEx(userCookie, hash) => {
-              if (!(macService.getMacForMessageAsHex(userCookie + hashSeparator) == hash)) {
+              if (!macService.verifyMessageAgainstMac(userCookie + hashSeparator, hash)) {
                 clearCookie(User.key)
                 redirect(authenticationProviderRedirectEndpoint)
               }
@@ -83,10 +85,12 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
           halt(status = 403, reason = "Sorry, you are not authorised")
         }
         val value = userCookiePattern.format(userEmail, userFirstName, userLastName)
-        val valueHash = macService.getMacForMessageAsHex(value)
-        cookies.set(User.key, value + valueHash)
-        val redirectToUri = getAndClearCookie(redirectTo)
-        redirect(redirectToUri)
+        macService.getMacForMessageAsHex(value) foreach { hash =>
+          cookies.set(User.key, value + hash)
+          //val redirectToUri = getAndClearCookie(redirectTo)
+          println("redirecting to: " + params("redirectTo") + ", returnTo is " + openidResp.getParameter("returnTo"))
+          redirect(params("redirectTo"))
+        }
       }
     } else
       halt(status = 403, reason = "Could not verify authentication with provider")
