@@ -1,12 +1,13 @@
 package com.gu.scalatra.openid
 
 import org.openid4java.consumer.ConsumerManager
-import org.openid4java.discovery.DiscoveryInformation
 import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
-import org.scalatra.ScalatraKernel
+import org.scalatra.{CookieSupport, ScalatraKernel}
+import com.gu.scalatra.security.{KeyService, MacService, SecretKey}
+import java.net.URLEncoder
 
-trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
+trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSupport {
 
   val authenticationReturnUri: String
   val authenticationReturnPath: String
@@ -14,6 +15,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
   val discoveryEndpoint: String
   val logoutPath: String
   val logoutRedirect: String
+  val secretKey: String
 
   lazy val discovered = "discovered"
   lazy val redirectTo = "redirectTo"
@@ -23,14 +25,18 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
   lazy val emailSchema = "http://schema.openid.net/contact/email"
   lazy val firstNameSchema = "http://axschema.org/namePerson/first"
   lazy val lastNameSchema = "http://axschema.org/namePerson/last"
+
   lazy val manager = new ConsumerManager
+  lazy val keyService = new KeyService(secretKey)
+  lazy val macService = new MacService with SecretKey {def secretKeySpec = keyService.getSecretKeySpec}
+  lazy val cookieRegEx = "^^([\\w\\W]*)>>([\\w\\W]*)$".r
+  lazy val hashSeparator = ">>"
+  lazy val userCookiePattern = "%s|%s|%s" + hashSeparator
 
   def authenticationProviderRedirectEndpoint() = {
     val discoveries = manager.discover(discoveryEndpoint)
-    val discoveryInformation = manager.associate(discoveries)
-    session.setAttribute(discovered, discoveryInformation)
-    session.setAttribute(redirectTo, request.getRequestURI)
-    val authReq = manager.authenticate(discoveryInformation, authenticationReturnUri)
+    cookies.set(redirectTo, request.getRequestURI)
+    val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
     fetch.addAttribute(firstName, firstNameSchema, true)
@@ -41,15 +47,28 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
 
   protectedPaths map { path =>
     before(path) {
-      if(!session.contains(User.key))
-        redirect(authenticationProviderRedirectEndpoint)
+      cookies.get(User.key) match {
+        case Some(cookie) => {
+          cookieRegEx.split(cookie) match {
+            case cookieRegEx(userCookie, hash) => {
+              if (!macService.verifyMessageAgainstMac(userCookie + hashSeparator, hash)) {
+                clearCookie(User.key)
+                redirect(authenticationProviderRedirectEndpoint)
+              }
+            }
+            case _ => // Do nothing
+          }
+
+        }
+        case _ => redirect(authenticationProviderRedirectEndpoint)
+      }
     }
   }
 
   get(authenticationReturnPath) {
     val openidResp = new ParameterList(request.getParameterMap())
-    val discoveryInformation = session.getAttribute(discovered).asInstanceOf[DiscoveryInformation]
-    val verification = manager.verify(authenticationReturnUri, openidResp, discoveryInformation)
+    val discoveries = manager.discover(discoveryEndpoint)
+    val verification = manager.verify(authenticationReturnUri, openidResp, manager.associate(discoveries))
     val verified = verification.getVerifiedId()
     if (verified != null) {
       val authSuccess = verification.getAuthResponse().asInstanceOf[AuthSuccess]
@@ -61,19 +80,33 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation {
         val userLastName = fetchResp.getAttributeValue(lastName)
         val user = User(userEmail, userFirstName, userLastName)
         if (!isUserAuthorised(user)){
-          session.invalidate()
+          clearCookie(User.key)
           halt(status = 403, reason = "Sorry, you are not authorised")
         }
-        session(User.key) = user
-        val redirectToUri = session.getAttribute(redirectTo).asInstanceOf[String]
-        redirect(redirectToUri)
+        val value = userCookiePattern.format(userEmail, userFirstName, userLastName)
+        macService.getMacForMessageAsHex(value) foreach { hash =>
+          cookies.set(User.key, value + hash)
+          val redirectToUri = getAndClearCookie(redirectTo)
+          redirect(redirectToUri)
+        }
       }
     } else
       halt(status = 403, reason = "Could not verify authentication with provider")
   }
 
+  def getAndClearCookie(cookieName: String): String = {
+    val cookie = cookies(cookieName)
+    clearCookie(cookieName)
+    cookie
+  }
+  
+  def clearCookie(cookieName: String) {
+    cookies.delete(cookieName)
+  }
+  
   get(logoutPath) {
     session.invalidate()
+    getAndClearCookie(User.key)
     redirect(logoutRedirect)
   }
 

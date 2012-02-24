@@ -16,7 +16,7 @@ Add the following resolver in sbt
 
 The current version is 0.1.2 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
 
-In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* and *SessionStore* traits.  This project provides default in-memory implementations for user authorisation and session store.  For example:
+In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* traits.  This project provides default in-memory implementations for user authorisation and session store.  For example:
 
     class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with AlwaysAllowUserAuthorisation
 
@@ -28,7 +28,7 @@ If you wish to contribute, please fork the project. Then create a new remote bra
 
 ### User authorisation
 
-This trait is for informing the application that an authentication has been successful and gives the application a change to reject that user based on some critera which this extension would not know about, a banned user for example.
+This trait is for informing the application that an authentication has been successful and gives the application a chance to reject that user based on some criteria which this extension would not know about, a banned user for example.
 
 Again, there is a default implementation which allows all users in.
 
