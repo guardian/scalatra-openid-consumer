@@ -5,9 +5,10 @@ import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
 import org.scalatra.{CookieSupport, ScalatraKernel}
 import com.gu.scalatra.security.{KeyService, MacService, SecretKey}
-import java.net.URLEncoder
+import org.scalatra.CookieSupport._
+import org.scalatra.ScalatraKernel._
 
-trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSupport {
+trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with OpenIdConsumerSupport {
 
   val authenticationReturnUri: String
   val authenticationReturnPath: String
@@ -29,13 +30,13 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
   lazy val manager = new ConsumerManager
   lazy val keyService = new KeyService(secretKey)
   lazy val macService = new MacService with SecretKey {def secretKeySpec = keyService.getSecretKeySpec}
-  lazy val cookieRegEx = "^^([\\w\\W]*)>>([\\w\\W]*)$".r
+  lazy val userRegEx = "^^([\\w\\W]*)>>([\\w\\W]*)$".r
   lazy val hashSeparator = ">>"
-  lazy val userCookiePattern = "%s|%s|%s" + hashSeparator
+  lazy val userKeyPattern = "%s|%s|%s" + hashSeparator
 
   def authenticationProviderRedirectEndpoint() = {
     val discoveries = manager.discover(discoveryEndpoint)
-    cookies.set(redirectTo, request.getRequestURI)
+    redirectTo(request.getRequestURI)
     val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
@@ -47,12 +48,12 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
 
   protectedPaths map { path =>
     before(path) {
-      cookies.get(User.key) match {
-        case Some(cookie) => {
-          cookieRegEx.split(cookie) match {
-            case cookieRegEx(userCookie, hash) => {
-              if (!macService.verifyMessageAgainstMac(userCookie + hashSeparator, hash)) {
-                clearCookie(User.key)
+      getUser match {
+        case Some(userKeyHash) => {
+          userRegEx.split(userKeyHash) match {
+            case userRegEx(userValue, hash) => {
+              if (!macService.verifyMessageAgainstMac(userValue + hashSeparator, hash)) {
+                clearUser()
                 redirect(authenticationProviderRedirectEndpoint)
               }
             }
@@ -80,18 +81,64 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
         val userLastName = fetchResp.getAttributeValue(lastName)
         val user = User(userEmail, userFirstName, userLastName)
         if (!isUserAuthorised(user)){
-          clearCookie(User.key)
+          clearUser()
           halt(status = 403, reason = "Sorry, you are not authorised")
         }
-        val value = userCookiePattern.format(userEmail, userFirstName, userLastName)
+        val value = userKeyPattern.format(userEmail, userFirstName, userLastName)
         macService.getMacForMessageAsHex(value) foreach { hash =>
-          cookies.set(User.key, value + hash)
-          val redirectToUri = getAndClearCookie(redirectTo)
-          redirect(redirectToUri)
+          storeUser(value + hash)
+          redirect(getRedirectTo)
         }
       }
     } else
       halt(status = 403, reason = "Could not verify authentication with provider")
+  }
+
+  get(logoutPath) {
+    session.invalidate()
+    clearUser()
+    redirect(logoutRedirect)
+  }
+
+}
+
+trait OpenIdConsumerSupport {
+  def redirectTo(url: String)
+
+  def getRedirectTo: String
+
+  def getUser: Option[String]
+
+  def clearUser()
+
+  def storeUser(keyHash: String)
+
+  def getAndClearCookie(cookieName: String): String
+
+  def clearCookie(cookieName: String)
+}
+
+trait OpenIdConsumerCookieSupport extends ScalatraKernel with CookieSupport {
+  lazy val redirectToKey = "redirectTo"
+
+  def redirectTo(url: String) {
+    cookies.set(redirectToKey, request.getRequestURI)
+  }
+
+  def getRedirectTo: String = {
+    getAndClearCookie(redirectToKey)
+  }
+  
+  def getUser: Option[String] = {
+    cookies.get(User.key)
+  }
+  
+  def clearUser() {
+    clearCookie(User.key)
+  }
+
+  def storeUser(keyHash: String) {
+    cookies.set(User.key, keyHash)
   }
 
   def getAndClearCookie(cookieName: String): String = {
@@ -99,15 +146,8 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with CookieSu
     clearCookie(cookieName)
     cookie
   }
-  
+
   def clearCookie(cookieName: String) {
     cookies.delete(cookieName)
   }
-  
-  get(logoutPath) {
-    session.invalidate()
-    getAndClearCookie(User.key)
-    redirect(logoutRedirect)
-  }
-
 }
