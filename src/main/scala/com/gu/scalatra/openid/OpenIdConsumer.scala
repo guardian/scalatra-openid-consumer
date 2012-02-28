@@ -4,12 +4,9 @@ import org.openid4java.consumer.ConsumerManager
 import org.openid4java.message.{AuthSuccess, ParameterList}
 import org.openid4java.message.ax.{FetchResponse, AxMessage, FetchRequest}
 import com.gu.scalatra.security.{KeyService, MacService, SecretKey}
-import org.scalatra.CookieSupport._
-import org.scalatra.ScalatraKernel._
-import org.scalatra.CookieOptions._
-import org.scalatra.{CookieOptions, CookieSupport, ScalatraKernel}
+import org.scalatra.ScalatraKernel
 
-trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with OpenIdConsumerSupport {
+trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageStrategy {
 
   val authenticationReturnUri: String
   val authenticationReturnPath: String
@@ -106,78 +103,3 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with OpenIdCo
 
 }
 
-trait OpenIdConsumerSupport {
-  lazy val redirectToKey = "redirectTo"
-  lazy val userKeyHash = "userKeyHash"
-
-  def redirectToUri(url: String)
-
-  def getRedirectToUri: String
-
-  def getUserKey: Option[String]
-
-  def clearUserKey() {
-    getAndClearUserKey(userKeyHash)
-  }
-
-  def clearUser() {
-    getAndClearUserKey(User.key)
-  }
-
-  def storeUserKey(keyHash: String)
-
-  def getAndClearUserKey(keyName: String): String
-}
-
-trait OpenIdConsumerCookieSupport extends OpenIdConsumerSupport with ScalatraKernel with CookieSupport {
-  def redirectToUri(url: String) {
-    cookies.set(redirectToKey, request.getRequestURI)
-  }
-
-  def getRedirectToUri: String = {
-    getAndClearUserKey(redirectToKey)
-  }
-  
-  def getUserKey: Option[String] = {
-    cookies.get(userKeyHash)
-  }
-
-  def storeUserKey(keyHash: String) {
-    cookies.set(userKeyHash, keyHash)
-  }
-
-  def getAndClearUserKey(keyName: String): String = {
-    val cookie = cookies(keyName)
-    clearCookie(keyName)
-    cookie
-  }
-
-  private def clearCookie(keyName: String) {
-    cookies.delete(keyName)
-  }
-}
-
-trait OpenIdConsumerSessionSupport extends OpenIdConsumerSupport with ScalatraKernel {
-  def redirectToUri(url: String) {
-    session.setAttribute(redirectToKey, url)
-  }
-
-  def getRedirectToUri: String = {
-    session.getAttribute(redirectToKey).asInstanceOf[String]
-  }
-
-  def getUserKey: Option[String] = {
-    Option(session.getAttribute(userKeyHash).asInstanceOf[String])
-  }
-
-  def storeUserKey(keyHash: String) {
-    session.setAttribute(userKeyHash, keyHash)
-  }
-
-  def getAndClearUserKey(keyName: String): String = {
-    val user = session.getAttribute(keyName).asInstanceOf[String]
-    session.invalidate()
-    user
-  }
-
-}
