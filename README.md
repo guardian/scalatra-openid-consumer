@@ -14,11 +14,20 @@ Add the following resolver in sbt
 
     "Guardian GitHub Release" at "http://guardian.github.com/maven/repo-releases"
 
-The current version is 0.1.2 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
+The current version is 0.1.5 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
 
 In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* traits.  This project provides default in-memory implementations for user authorisation and session store.  For example:
 
-    class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with AlwaysAllowUserAuthorisation
+    class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with CookieStorageStrategy with AlwaysAllowUserAuthorisation
+
+You must provide the following values:
+
+      lazy val protectedPaths: List[String]         // a list of paths to be protected for your app
+      lazy val logoutPath: String
+      lazy val logoutRedirect: String               // logout URI, including any context path
+      lazy val authenticationReturnPath: String
+      lazy val authenticationReturnUri: String      // fully qualified URI to return to after authorising user
+      lazy val secretKey: String                    // a secret key for your app
 
 ## Contributing
 
