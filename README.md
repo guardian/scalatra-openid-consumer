@@ -10,13 +10,17 @@ In order to create more implementations, only the 'discovery' endpoint should be
 
 ## Usage
 
-Add the following resolver in sbt
+Add the following resolver in sbt:
 
     "Guardian GitHub Release" at "http://guardian.github.com/maven/repo-releases"
+    
+And include the project:    
+    
+    "com.gu" %% "scalatra-openid-consumer" % "0.1.5"
 
 The current version is 0.1.5 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
 
-In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* traits.  This project provides default in-memory implementations for user authorisation and session store.  For example:
+In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* trait.  This project provides a default in-memory implementation for user authorisation, and includes one OpenId provider (Google) and the storage strategy (Cookie or Session).  It should be possible to extend *OpenIdConsumer* to support other providers.  For example:
 
     class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with CookieStorageStrategy with AlwaysAllowUserAuthorisation
 
@@ -28,6 +32,15 @@ You must provide the following values:
       lazy val authenticationReturnPath: String
       lazy val authenticationReturnUri: String      // fully qualified URI to return to after authorising user
       lazy val secretKey: String                    // a secret key for your app
+
+Within this class, you will need to set a series of values for the trait.
+   
+    val authenticationReturnUri: String // the full request URI: domain, port, context and path; where clients are returned too after being sent to the provider
+    val authenticationReturnPath: String // the endpoint that the provider will send the client back to, i.e. /auth/verify
+    val protectedPaths: List[String] // a list of paths to protect using the OpenId trait, i.e. List("/protect*", "/private*")
+    val discoveryEndpoint: String // set within the GoogleOpenIdConsumer, but can be replaced for other providers
+    val logoutPath: String // the endpoint where the the client can log out from 
+    val logoutRedirect: String // the endpoint where the trait will send the client to after the client has been logged out
 
 ## Contributing
 
