@@ -24,23 +24,15 @@ In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthor
 
     class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with CookieStorageStrategy with AlwaysAllowUserAuthorisation
 
-You must provide the following values:
-
-      lazy val protectedPaths: List[String]         // a list of paths to be protected for your app
-      lazy val logoutPath: String
-      lazy val logoutRedirect: String               // logout URI, including any context path
-      lazy val authenticationReturnPath: String
-      lazy val authenticationReturnUri: String      // fully qualified URI to return to after authorising user
-      lazy val secretKey: String                    // a secret key for your app
-
 Within this class, you will need to set a series of values for the trait.
    
-    val authenticationReturnUri: String // the full request URI: domain, port, context and path; where clients are returned too after being sent to the provider
-    val authenticationReturnPath: String // the endpoint that the provider will send the client back to, i.e. /auth/verify
-    val protectedPaths: List[String] // a list of paths to protect using the OpenId trait, i.e. List("/protect*", "/private*")
-    val discoveryEndpoint: String // set within the GoogleOpenIdConsumer, but can be replaced for other providers
-    val logoutPath: String // the endpoint where the the client can log out from 
-    val logoutRedirect: String // the endpoint where the trait will send the client to after the client has been logged out
+    val authenticationReturnUri: String             // the full request URI: domain, port, context and path; where clients are returned too after being sent to the provider
+    val authenticationReturnPath: String            // the endpoint that the provider will send the client back to, i.e. /auth/verify
+    val protectedPaths: List[String]                // a list of paths to protect using the OpenId trait, i.e. List("/protect*", "/private*")
+    val discoveryEndpoint: String                   // set within the GoogleOpenIdConsumer, but can be replaced for other providers
+    val logoutPath: String                          // the endpoint where the the client can log out from
+    val logoutRedirect: String                      // the endpoint where the trait will send the client to after the client has been logged out
+    val secretKey: String                           // your apps secret key
 
 ## Contributing
 
