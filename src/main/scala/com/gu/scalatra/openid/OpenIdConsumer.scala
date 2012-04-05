@@ -14,7 +14,6 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
   val discoveryEndpoint: String
   val logoutPath: String
   val logoutRedirect: String
-  val secretKey: String
 
   lazy val discovered = "discovered"
   lazy val email = "email"
@@ -25,15 +24,10 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
   lazy val lastNameSchema = "http://axschema.org/namePerson/last"
 
   lazy val manager = new ConsumerManager
-  lazy val keyService = new KeyService(secretKey)
-  lazy val macService = new MacService with SecretKey {def secretKeySpec = keyService.getSecretKeySpec}
-  lazy val userRegEx = "^^([\\w\\W]*)>>([\\w\\W]*)$".r
-  lazy val hashSeparator = ">>"
-  lazy val userKeyPattern = "%s|%s|%s" + hashSeparator
 
   def authenticationProviderRedirectEndpoint() = {
     val discoveries = manager.discover(discoveryEndpoint)
-    redirectToUri(request.getRequestURI)
+    storeRedirectToUri(request.getRequestURI)
     val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
@@ -45,22 +39,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
 
   protectedPaths map { path =>
     before(path) {
-      getUserKey match {
-        case Some(userKeyHash) => {
-          userRegEx.split(userKeyHash) match {
-            case userRegEx(userValue, hash) => {
-              if (!macService.verifyMessageAgainstMac(userValue + hashSeparator, hash)) {
-                clearUserKey()
-                clearUser()
-                redirect(authenticationProviderRedirectEndpoint)
-              }
-            }
-            case _ => // Do nothing
-          }
-
-        }
-        case _ => redirect(authenticationProviderRedirectEndpoint)
-      }
+      if (getUser isEmpty) redirect(authenticationProviderRedirectEndpoint)
     }
   }
 
@@ -78,16 +57,14 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
         val userFirstName = fetchResp.getAttributeValue(firstName)
         val userLastName = fetchResp.getAttributeValue(lastName)
         val user = User(userEmail, userFirstName, userLastName)
-        if (isUserAuthorised(user))
-          session.setAttribute(User.key, user)  // Store the authorised user so it can be used by the app
-        else {
+        if (isUserAuthorised(user)) {
+          storeUser(user)
+          val redirectUrl = getRedirectToUri
+          clearRedirectToUrl()
+          redirect(redirectUrl)
+        } else {
           clearUser()
           halt(status = 403, reason = "Sorry, you are not authorised")
-        }
-        val value = userKeyPattern.format(userEmail, userFirstName, userLastName)
-        macService.getMacForMessageAsHex(value) foreach { hash =>
-          storeUserKey(value + hash)
-          redirect(getRedirectToUri)
         }
       }
     } else
@@ -95,8 +72,6 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
   }
 
   get(logoutPath) {
-    session.invalidate()
-    clearUserKey()
     clearUser()
     redirect(logoutRedirect)
   }

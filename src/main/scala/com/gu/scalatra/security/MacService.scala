@@ -19,8 +19,9 @@ abstract class MacService extends SecretKey {
   def verifyMessageAgainstMac(message: String, macAsHexString: String) = {
     if (StringUtils.isBlank(message) || StringUtils.isBlank(macAsHexString))
       false
-    else
-      getMacForMessageAsHex(message).equals(macAsHexString)
+    else {
+      getMacForMessageAsHex(message).map(_.equals(macAsHexString)).getOrElse(false)
+    }
   }
   
   def getMacForMessage(message: String) = {
