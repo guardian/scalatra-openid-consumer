@@ -16,22 +16,23 @@ Add the following resolver in sbt:
     
 And include the project:    
     
-    "com.gu" %% "scalatra-openid-consumer" % "0.1.2"
+    "com.gu" %% "scalatra-openid-consumer" % "0.1.6"
 
-The current version is 0.1.2 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
+The current version is 0.1.6 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
 
-In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* trait.  This project provides a default in-memory implementation for user authorisation, and includes one OpenId provider (Google).  It should be possible to extend *OpenIdConsumer* to support other providers.  For example:
+In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* trait.  This project provides a default in-memory implementation for user authorisation, and includes one OpenId provider (Google) and the storage strategy (Cookie or Session).  It should be possible to extend *OpenIdConsumer* to support other providers.  For example:
 
-    class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with AlwaysAllowUserAuthorisation
+    class Dispatcher extends ScalatraFilter with GoogleOpenIdConsumer with CookieStorageStrategy with AlwaysAllowUserAuthorisation
 
 Within this class, you will need to set a series of values for the trait.
    
-    val authenticationReturnUri: String // the full request URI: domain, port, context and path; where clients are returned too after being sent to the provider
-    val authenticationReturnPath: String // the endpoint that the provider will send the client back to, i.e. /auth/verify
-    val protectedPaths: List[String] // a list of paths to protect using the OpenId trait, i.e. List("/protect*", "/private*")
-    val discoveryEndpoint: String // set within the GoogleOpenIdConsumer, but can be replaced for other providers
-    val logoutPath: String // the endpoint where the the client can log out from 
-    val logoutRedirect: String // the endpoint where the trait will send the client to after the client has been logged out
+    val authenticationReturnUri: String             // the full request URI: domain, port, context and path; where clients are returned too after being sent to the provider
+    val authenticationReturnPath: String            // the endpoint that the provider will send the client back to, i.e. /auth/verify
+    val protectedPaths: List[String]                // a list of paths to protect using the OpenId trait, i.e. List("/protect*", "/private*")
+    val discoveryEndpoint: String                   // set within the GoogleOpenIdConsumer, but can be replaced for other providers
+    val logoutPath: String                          // the endpoint where the the client can log out from
+    val logoutRedirect: String                      // the endpoint where the trait will send the client to after the client has been logged out
+    val secretKey: String                           // your apps secret key used for signing cookies - only required by the CookieStorageStrategy
 
 ## Contributing
 
@@ -41,13 +42,13 @@ If you wish to contribute, please fork the project. Then create a new remote bra
 
 ### User authorisation
 
-This trait is for informing the application that an authentication has been successful and gives the application a change to reject that user based on some critera which this extension would not know about, a banned user for example.
+This trait is for informing the application that an authentication has been successful and gives the application a chance to reject that user based on some criteria which this extension would not know about, a banned user for example.
 
 Again, there is a default implementation which allows all users in.
 
 ### User
 
-This case class contains the email, first name and last name of the authenticated user.
+This case class contains the email, first name and last name of the authenticated user. You can retrieve the user in your code by calling the getUser method provided by the StorageStrategy you have mixed in
 
 ### OpenIdConsumer
 
