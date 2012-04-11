@@ -1,7 +1,7 @@
 package com.gu.scalatra.openid
 
-import org.scalatra.{CookieSupport, ScalatraKernel}
 import com.gu.scalatra.security.{SecretKey, KeyService, MacService}
+import org.scalatra.{CookieOptions, CookieSupport, ScalatraKernel}
 
 trait StorageStrategy {
   lazy val redirectToKey = "redirectTo"
@@ -37,26 +37,18 @@ trait CookieStorageStrategy extends StorageStrategy with ScalatraKernel with Coo
     cookies.set(User.key, signedUserData)
   }
 
-  def getUser = {
-    cookies.get(User.key) match {
-      case Some(cookieData) => {
-        cookieData match {
-          case userCookieRegEx(userValue, hash) => {
-            if (macService.verifyMessageAgainstMac(userValue, hash)) {
-              Some(User(userValue))
-            } else {
-              // cookie failed validation, remove
-              clearKey(User.key)
-              None
-            }
-          }
-          case _ => None
-        }
-      } case _ => None
+  def getUser = cookies.get(User.key).flatMap { cd =>
+    cd match {
+      case userCookieRegEx(userValue, hash) if macService.verifyMessageAgainstMac(userValue, hash) => Some(User(userValue))
+      case _ => {
+        clearKey(User.key)
+        None
+      }
     }
   }
 
-  def clearKey(keyName: String) = cookies.delete(keyName)
+  // set cookie rather than delete cookie via cookies.delete to work round bug in scalatra 2.0.X
+  def clearKey(keyName: String) {cookies.set(keyName, "")(cookieOptions.copy(maxAge = 0)) }
 
 }
 
