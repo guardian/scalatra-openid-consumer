@@ -27,7 +27,9 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
 
   def authenticationProviderRedirectEndpoint() = {
     val discoveries = manager.discover(discoveryEndpoint)
-    storeRedirectToUri(request.getRequestURI)
+    val optionalParams = Option(request.getQueryString).map("?" + _) getOrElse ""
+    val fullUri = request.getRequestURI + optionalParams
+    storeRedirectToUri(fullUri)
     val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
