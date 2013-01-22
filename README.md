@@ -64,6 +64,7 @@ Publishing is currently controlled through the Guardian Github repository of whi
     git clone git@github.com:guardian/guardian.github.com.git
     (in sbt): +publish
     cd ~/guardian.github.com
+    ./update-directory-index.sh
     git add <add new files>
     git commit -m "<commit message>"
     git push
