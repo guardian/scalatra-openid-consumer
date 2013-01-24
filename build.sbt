@@ -1,20 +1,10 @@
 libraryDependencies ++= Seq(
   "javax.servlet" % "servlet-api" % "2.5" % "provided",
   "org.scalatra" %% "scalatra" % "2.0.2",
-  "com.google.inject" % "guice" % "2.0",
+  "org.openid4java" % "openid4java" % "0.9.7",
   "commons-codec" % "commons-codec" % "1.4",
   "commons-lang" % "commons-lang" % "2.5"
 )
-
-// Adding the openid4java dependency using ivyXML, due to bug in sbt.
-// com.google.code.guice is excluded as it is no longer available,
-// sbt 0.11.* can only exclude jars, so using ivyXML syntax to work around.
-
-ivyXML :=
-  <dependency org="org.openid4java" name="openid4java-consumer" rev="0.9.6">
-      <exclude org="com.google.code.guice" module="guice"/>
-  </dependency>
-
 
 
 scalaVersion := "2.9.1"
