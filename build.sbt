@@ -17,7 +17,7 @@ organization := "com.gu"
 
 name := "scalatra-openid-consumer"
 
-version in ThisBuild := "0.1.9"
+version in ThisBuild := "0.1.10"
 
 publishTo <<= (version) { version: String =>
     val publishType = if (version.endsWith("SNAPSHOT")) "snapshots" else "releases"
