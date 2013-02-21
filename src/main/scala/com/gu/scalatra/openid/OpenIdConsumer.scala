@@ -8,8 +8,8 @@ import org.scalatra.ScalatraKernel
 
 trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageStrategy {
 
-  val authenticationReturnUri: String
-  val authenticationReturnPath: String
+  def authenticationReturnUri: String
+  def authenticationReturnPath: String
   val protectedPaths: List[String]
   val discoveryEndpoint: String
   val logoutPath: String
