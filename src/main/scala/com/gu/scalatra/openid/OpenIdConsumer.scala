@@ -10,10 +10,10 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
 
   def authenticationReturnUri: String
   def authenticationReturnPath: String
-  val protectedPaths: List[String]
-  val discoveryEndpoint: String
-  val logoutPath: String
-  val logoutRedirect: String
+  def protectedPaths: List[String]
+  def discoveryEndpoint: String
+  def logoutPath: String
+  def logoutRedirect: String
 
   lazy val discovered = "discovered"
   lazy val email = "email"
