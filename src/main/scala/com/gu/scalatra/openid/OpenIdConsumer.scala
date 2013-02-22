@@ -15,6 +15,12 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
   def logoutPath: String
   def logoutRedirect: String
 
+  // By default, redirect to the URL originally hit when the auth journey started
+  def redirectToUri: String = {
+    val optionalParams = Option(request.getQueryString).map("?" + _) getOrElse ""
+    request.getRequestURI + optionalParams
+  }
+
   lazy val discovered = "discovered"
   lazy val email = "email"
   lazy val firstName = "firstname"
@@ -27,9 +33,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
 
   def authenticationProviderRedirectEndpoint() = {
     val discoveries = manager.discover(discoveryEndpoint)
-    val optionalParams = Option(request.getQueryString).map("?" + _) getOrElse ""
-    val fullUri = request.getRequestURI + optionalParams
-    storeRedirectToUri(fullUri)
+    storeRedirectToUri(redirectToUri)
     val authReq = manager.authenticate(manager.associate(discoveries), authenticationReturnUri)
     val fetch = FetchRequest.createFetchRequest()
     fetch.addAttribute(email, emailSchema, true)
