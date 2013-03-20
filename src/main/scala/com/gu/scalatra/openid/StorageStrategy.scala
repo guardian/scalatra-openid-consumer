@@ -1,7 +1,7 @@
 package com.gu.scalatra.openid
 
 import com.gu.scalatra.security.{SecretKey, KeyService, MacService}
-import org.scalatra.{CookieOptions, CookieSupport, ScalatraKernel}
+import org.scalatra.{Cookie, CookieOptions, CookieSupport, ScalatraKernel}
 
 trait StorageStrategy {
   lazy val redirectToKey = "redirectTo"
@@ -25,7 +25,7 @@ trait CookieStorageStrategy extends StorageStrategy with ScalatraKernel with Coo
   lazy val hashSeparator= ">>"
   lazy val userCookieRegEx = "^^([\\w\\W]*)>>([\\w\\W]*)$".r
 
-  def storeRedirectToUri(url: String) { cookies.set(redirectToKey, url) }
+  def storeRedirectToUri(url: String) { response.addHeader("Set-Cookie", Cookie(redirectToKey, url).toCookieString) }
 
   def getRedirectToUri = cookies(redirectToKey)
 
@@ -34,7 +34,7 @@ trait CookieStorageStrategy extends StorageStrategy with ScalatraKernel with Coo
     val hash = macService.getMacForMessageAsHex(value).get
     val signedUserData = value + hashSeparator + hash
 
-    cookies.set(User.key, signedUserData)
+    response.addHeader("Set-Cookie", Cookie(User.key, signedUserData).toCookieString)
   }
 
   def getUser = cookies.get(User.key).flatMap { cd =>
