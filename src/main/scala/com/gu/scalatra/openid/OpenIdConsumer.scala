@@ -12,6 +12,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
   def authenticationReturnPath: String
   def protectedPaths: List[String]
   def discoveryEndpoint: String
+  def sendAssocHandle: Boolean = true
   def logoutPath: String
   def logoutRedirect: String
 
@@ -40,6 +41,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
     fetch.addAttribute(firstName, firstNameSchema, true)
     fetch.addAttribute(lastName, lastNameSchema, true)
     authReq.addExtension(fetch)
+    if (!sendAssocHandle) { authReq.setHandle(" ") }
     authReq.getDestinationUrl(true)
   }
 
