@@ -24,7 +24,7 @@ abstract class MacService extends SecretKey {
     }
   }
   
-  def getMacForMessage(message: String) = {
+  def getMacForMessage(message: String) = synchronized {
     mac.doFinal(message.getBytes())
   }
 }
