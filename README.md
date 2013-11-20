@@ -16,9 +16,11 @@ Add the following resolver in sbt:
     
 And include the project:    
     
-    "com.gu" %% "scalatra-openid-consumer" % "0.1.6"
+    "com.gu" %% "scalatra-openid-consumer" % "0.2.0"
 
-The current version is 0.1.6 and is available for Scala 2.8.1, 2.9.0_1 and 2.9.1 and is dependent on Scalatra 2.0.2
+The current version is 0.2.0 and is available for Scala 2.10.x and is dependent on Scalatra 2.0.5 (for servlet api 2.5 containers)
+
+For scalatra 2.0.2 / scala 2.9.1 the version you'll need version  0.1.16
 
 In your filter class mixin the *OpenIdConsumer* trait along with the *UserAuthorisation* trait.  This project provides a default in-memory implementation for user authorisation, and includes one OpenId provider (Google) and the storage strategy (Cookie or Session).  It should be possible to extend *OpenIdConsumer* to support other providers.  For example:
 
