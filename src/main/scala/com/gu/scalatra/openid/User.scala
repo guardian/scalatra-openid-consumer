@@ -3,7 +3,7 @@ package com.gu.scalatra.openid
 case class User(email: String, firstName: String, lastName: String) {
   import User.delimitedUserPattern
 
-  def asDelimitedString = delimitedUserPattern.format(email, firstName, lastName)
+  def asCookieData = delimitedUserPattern.format(email, firstName, lastName)
 }
 
 object User {
