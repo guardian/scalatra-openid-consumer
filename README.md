@@ -34,6 +34,7 @@ Within this class, you will need to set a series of values for the trait.
     val discoveryEndpoint: String                   // set within the GoogleOpenIdConsumer, but can be replaced for other providers
     val logoutPath: String                          // the endpoint where the the client can log out from
     val logoutRedirect: String                      // the endpoint where the trait will send the client to after the client has been logged out
+    val authErrorRedirect: String                   // the endpoint where the trait will send the client to if the authentication or authorisation fails
     val secretKey: String                           // your apps secret key used for signing cookies - only required by the CookieStorageStrategy
 
 ## Contributing

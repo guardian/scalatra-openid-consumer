@@ -15,6 +15,7 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
   def sendAssocHandle: Boolean = true
   def logoutPath: String
   def logoutRedirect: String
+  def authErrorRedirect: String
 
   // By default, redirect to the URL originally hit when the auth journey started
   def redirectToUri: String = {
@@ -65,18 +66,22 @@ trait OpenIdConsumer extends ScalatraKernel with UserAuthorisation with StorageS
         val userFirstName = fetchResp.getAttributeValue(firstName)
         val userLastName = fetchResp.getAttributeValue(lastName)
         val user = User(userEmail, userFirstName, userLastName)
-        if (isUserAuthorised(user)) {
-          storeUser(user)
-          val redirectUrl = getRedirectToUri
-          clearRedirectToUrl()
-          redirect(redirectUrl)
-        } else {
-          clearUser()
-          halt(status = 403, reason = "Sorry, you are not authorised")
+        isUserAuthorised(user) match {
+          case Authorised => {
+            storeUser(user)
+            val redirectUrl = getRedirectToUri
+            clearRedirectToUrl()
+            redirect(redirectUrl)
+          }
+          case Refused(error) => {
+            clearUser()
+            // TODO: cleaner GET param appending
+            redirect(authErrorRedirect + s"?email=$userEmail&errorType=authorisation&errorKey=$error")
+          }
         }
       }
     } else
-      halt(status = 403, reason = "Could not verify authentication with provider")
+      redirect(authErrorRedirect + s"?errorType=authentication&errorKey=provider")
   }
 
   get(logoutPath) {
